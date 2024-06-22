@@ -1,45 +1,95 @@
-import React, { useState ,useEffect } from 'react'
+import React, { useState ,useEffect ,useContext} from 'react'
 import axios from 'axios' 
-const Main = () => {
-const [numbers,setNumbers]=useState([]);
-const body={
+import NewCard from './NewCard';
+import ReactPaginate from 'react-paginate';
+import { useNavigate } from 'react-router-dom';
+import { DataContext } from './ContextProvider';
+import Error from './Error';
+const Main = (props) => {
+const [response,setResponse]=useState([]);
+
+
+const navigate=useNavigate();
   
-    companyName: "DRMCET",
-    clientID: "e9f91c4f-b8cb-4535-ac91-76d7c7b3c5bb",
-    clientSecret: "SjoUknblcaupucTA",
-    ownerName: "Rajakumar",
-    ownerEmail: "727621bee059@mcet.in",
-    rollNo: "727621bee059"
+const data=useContext(DataContext);
 
-};
-const [val,setVal]=useState(0)
+useEffect(()=>{
+ 
+  const url=`https://gnews.io/api/v4/top-headlines?category=${props.Category}&apikey=2f146026522260ff88ef4a59a44067a6`;
+  fetch(url)
+  .then(function (response) {
+    return response.json();
+  })
+  .then(function (data) {
+   const articles = data.articles;
+    setResponse(articles);
+  }).catch((err)=>{
+    navigate('/error')
+  })
 
-/*useEffect(()=>{
-  try{
-  const response=axios.post("http://20.244.56.144/test/auth",body);
-  console.log(response);}
-  catch(err){
-    console.log(err);
+  if(response===undefined){
+    navigate('/error')
   }
-},[]);*/
+
+},[props.Category]);
+useEffect(()=>{
+  const url=`https://gnews.io/api/v4/search?q=${props.search}&apikey=2f146026522260ff88ef4a59a44067a6`;
+  fetch(url)
+  .then(function (response) {
+    return response.json();
+  })
+  .then(function (data) {
+   const articles = data.articles;
+    setResponse(articles);
+  }).catch((err)=>{
+    navigate('/error')
+  })
+  if(response===undefined){
+    navigate('/error')
+  }
+},[props.ser])
+
+
+const itemsPerPage=10;
+const [itemOffset, setItemOffset] = useState(0);
+
+  const endOffset = itemOffset + itemsPerPage;
+  console.log(`Loading items from ${itemOffset} to ${endOffset}`);
+  const currentItems = response?.slice(itemOffset, endOffset);
+  const pageCount = Math.ceil(response?.length / itemsPerPage);
+
+  const handlePageClick = (event) => {
+    const newOffset = (event.selected * itemsPerPage) % response.length;
+    console.log(
+      `User requested page number ${event.selected}, which is offset ${newOffset}`
+    );
+    setItemOffset(newOffset);
+  };
+
+
+  
   return (
-    <div className=' bg-slate-600 flex justify-center mt-[20%]'>
-    <div className=' mr-40 w-96 bg-slate-300 h-50 my-auto rounded-md  p-5'>
-        <h1 className=' text-2xl align-middle pr-20'>
-            Calculater
-        </h1>
-        <div className=' bg-slate-500 w-full'>
-<div className='bg-slate-300 mt-12'>
-  <input className='bg-slate-100 mr-3' type='text' placeholder='enter the values' value={val} onChange={(e)=>{setVal(e.target.val)}}/>
-  <button className='w-25 rounded-full text-white bg-slate-600 p-1 mr-[40px]' onClick={()=>{
-    setVal(eval(val))
-  }}>Calculate</button>
-</div>
-        </div>
-        </div>
-        </div>
+   <div className='grid  grid-cols-1 sm:grid-cols-2 md:grid-cols-3 justify-items-center'>
+    
+            {currentItems&&currentItems.map((item,key)=><div onClick={()=>{
+              localStorage.setItem('news',JSON.stringify(item));
+              data.addData(JSON.stringify(item));
+navigate('/news');
+            }}><NewCard title={item.title} img={item.image} date={item.publishedAt} key={key} Category={props.Category} news={props.news}/></div>)}
+            <ReactPaginate
+        breakLabel="..."
+        nextLabel="next >"
+        onPageChange={handlePageClick}
+        pageRangeDisplayed={5}
+        pageCount={pageCount}
+        previousLabel="< previous"
+        renderOnZeroPageCount={null}
+      />
         
-  )
+        </div>
+  ) 
+  
 }
+
 
 export default Main
